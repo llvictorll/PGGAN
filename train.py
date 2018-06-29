@@ -3,6 +3,7 @@ from torch import optim
 import torch.nn.functional as F
 from network import NetG, NetD
 from tqdm import tqdm
+import sys
 import matplotlib.pyplot as plt
 from dataloader import dataload
 netG = NetG()
@@ -22,7 +23,7 @@ for k in [8, 16, 32, 64]:
     batch_size = 64
     dataset = dataload(k)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True)
-    bar = tqdm(range(25))
+    bar = tqdm(range(1))
 
     for epoch in bar:
         if epoch > 10:
@@ -31,8 +32,8 @@ for k in [8, 16, 32, 64]:
 
         for i, x in zip(tqdm(range(len(dataloader))), dataloader):
             x = x.cuda()
-            real_label = torch.FloatTensor(batch_size).fill_(.9).cuda()
-            fake_label = torch.FloatTensor(batch_size).fill_(.1).cuda()
+            real_label = torch.cuda.FloatTensor(batch_size).fill_(.9)
+            fake_label = torch.cuda.FloatTensor(batch_size).fill_(.1)
             noise = torch.randn(batch_size, 100, 1, 1).cuda()
 
             alpha_value = ((epoch*len(dataloader) + (i+1))/total)
@@ -46,8 +47,12 @@ for k in [8, 16, 32, 64]:
 
             #with false label
             outputG = netG(noise).detach()
+            #print(outputG.size())
             outputFalse = netD(outputG, alpha=(1-alpha_value) if alpha else -1)
-            lossDF = F.binary_cross_entropy(outputTrue, fake_label)
+            #print(outputFalse.size())
+            #print(fake_label.size())
+
+            lossDF = F.binary_cross_entropy_with_logits(outputFalse, fake_label)
 
             (lossDT+lossDF).backward()
             optimizerD.step()
@@ -55,14 +60,14 @@ for k in [8, 16, 32, 64]:
             #Generateur
             outputG = netG(noise, alpha=(1-alpha_value) if alpha else -1)
             outputD = netD(outputG, alpha=(1-alpha_value) if alpha else -1)
-            lossG = F.binary_cross_entropy(outputD, real_label)
+            lossG = F.binary_cross_entropy_with_logits(outputD, real_label)
 
             lossG.backward()
             optimizerG.step()
-
+            break
             if(i%250 == 0):
                 netG.eval()
-                img = netG(noise_fixe, alpha=(1-alpha_value) if alpha else -1).data.gpu()
+                img = netG(noise_fixe, alpha=(1-alpha_value) if alpha else -1).data.cpu()
                 tensor_back = torch.zeros(k*5+6, k*5+6, 3)
                 index = 0
                 netG.train()
@@ -70,7 +75,7 @@ for k in [8, 16, 32, 64]:
                     for h in range(5):
                         tensor_back[w * k + w + 1:(w + 1) * k + w + 1, h * k + h + 1:(h + 1) * k + h + 1] = img[index].transpose(0, 2).transpose(0, 1)/2+0.5
                         index += 1
-                plt.save("/local/besnier/image_HQ/img{}".format(cpt),tensor_back)
+                plt.imsave("/local/besnier/image_HQ/img{}".format(cpt),tensor_back)
                 cpt+=1
 
     netG.add_layer()

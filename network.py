@@ -13,7 +13,7 @@ class NetG(nn.Module):
         self.mlist = nn.ModuleList()  # init liste de blocks intermediaires
         self.mlist.append(self.f_block)
         self.mlist.append(self._intermediate_block())
-        self.block_to_image = self._block_to_RGB(self.cngf)  # On met ici le block chargé de transfo le block en image
+        self.block_to_image = self._block_to_RGB(self.cngf//2)  # On met ici le block chargé de transfo le block en image
         self.prev_b2img = self.block_to_image  # sauvegarde la "block2img" qui precede
 
     def _first_block(self):
@@ -45,7 +45,7 @@ class NetG(nn.Module):
         return block
 
     def add_layer(self):
-        self.mlist.append(self.create_intermediate_block())  # on ajoute un block intermedaire
+        self.mlist.append(self._intermediate_block())  # on ajoute un block intermedaire
         self.cngf = self.cngf // 2  # maj de la taille de sortie
         self.prev_b2img = self.block_to_image  # maj de l'ancienne b2img
         self.block_to_image = self._block_to_RGB(self.cngf)  # on créer un nouveau block2img avec les bonne dim
@@ -54,8 +54,9 @@ class NetG(nn.Module):
         x_copy = x
 
         for i, module in enumerate(self.mlist):
-            print(x_copy.size())
+            #print(x_copy.size())
             outputx = module(x_copy)
+            #print(outputx.size())
             is_last_block = i == len(self.mlist) - 1
 
             if is_last_block and alpha > 0:
@@ -67,7 +68,7 @@ class NetG(nn.Module):
                 x_copy = self.block_to_image(outputx)
             else:
                 x_copy = outputx
-            print("end of module")
+            #print("end of module")
 
         return x_copy
 
@@ -108,7 +109,15 @@ class NetD(nn.Module):
         return block
 
     def add_layer(self):
-        self.mlist.insert(0,self.create_intermediate_block())  # on ajoute un block intermedaire
+        new_list = nn.ModuleList()
+        new_list.append(self._intermediate_block())
+
+        for module in self.mlist:
+            new_list.append(module)
+
+        self.mlist = new_list
+
+
         self.cngf = self.cngf // 2                             # maj de la taille de sortie
         self.prev_img2b = self.image_to_block                  # maj de l'ancienne img2b
         self.image_to_block = self._rgb_to_block(self.cngf)    # on créer un nouveau img2block avec les bonnes dim
