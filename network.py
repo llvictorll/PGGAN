@@ -48,7 +48,7 @@ class NetG(nn.Module):
         self.mlist.append(self._intermediate_block())  # on ajoute un block intermedaire
         self.cngf = self.cngf // 2  # maj de la taille de sortie
         self.prev_b2img = self.block_to_image  # maj de l'ancienne b2img
-        self.block_to_image = self._block_to_RGB(self.cngf)  # on créer un nouveau block2img avec les bonne dim
+        self.block_to_image = self._block_to_RGB(self.cngf)  # on créer un nouveau block2img avec les bonnes dim
 
     def forward(self, x, alpha=-1):
         x_copy = x
