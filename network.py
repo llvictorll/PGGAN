@@ -45,8 +45,8 @@ class NetG(nn.Module):
         return block
 
     def add_layer(self):
-        self.mlist.append(self._intermediate_block())  # on ajoute un block intermedaire
         self.cngf = self.cngf // 2  # maj de la taille de sortie
+        self.mlist.append(self._intermediate_block())  # on ajoute un block intermedaire
         self.prev_b2img = self.block_to_image  # maj de l'ancienne b2img
         self.block_to_image = self._block_to_RGB(self.cngf)  # on créer un nouveau block2img avec les bonnes dim
 
@@ -103,12 +103,12 @@ class NetD(nn.Module):
     def _rgb_to_block(self, c_out):
         block = nn.Sequential(
             nn.Conv2d(self.nc, c_out, 1,1,0,bias=False),
-            nn.BatchNorm2d(c_out),
             nn.LeakyReLU(0.2)
         )
         return block
 
     def add_layer(self):
+        self.cngf = self.cngf // 2                             # maj de la taille de sortie
         new_list = nn.ModuleList()
         new_list.append(self._intermediate_block())
 
@@ -116,11 +116,9 @@ class NetD(nn.Module):
             new_list.append(module)
 
         self.mlist = new_list
-
-
-        self.cngf = self.cngf // 2                             # maj de la taille de sortie
-        self.prev_img2b = self.image_to_block                  # maj de l'ancienne img2b
-        self.image_to_block = self._rgb_to_block(self.cngf)    # on créer un nouveau img2block avec les bonnes dim
+        
+        self.prev_img2b = self.image_to_block                     # maj de l'ancienne img2b
+        self.image_to_block = self._rgb_to_block(self.cngf//2)    # on créer un nouveau img2block avec les bonnes dim
 
     def forward(self, x, alpha=-1):
         x_copy = x
